@@ -1,121 +1,83 @@
-from cProfile import label
-from operator import mod
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
-from sklearn.model_selection import train_test_split
-from torch.utils.data import Dataset, DataLoader, TensorDataset
-from model import *
+# import torch.nn.functional as F
+# import matplotlib.pyplot as plt
+# import numpy as np
+# import random
 
-import matplotlib.pyplot as plt
+# from torchvision import datasets
+# from PIL import Image
+from torch.utils.data import DataLoader
+from torchvision.transforms import Compose, Resize, ToTensor, transforms
+from torch.cuda import amp
+from dataset import ImgDataset
+from function import getimg, test_epoch, train_epoch
 
-from keras.datasets import mnist
+from net import net
 
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-print('GPU State:', device)
-
-def train(train_loader, test_loader, epoch):
-    train_loss = []
-    train_acc = []
-    valid_loss = []
-    valid_acc = []
-
-    model = net()
-    input_shape = (-1,1,28,28)
-    lr = 0.01
-    opt = torch.optim.AdamW(model.parameters(), lr=lr)
-    criterion = nn.CrossEntropyLoss()
- 
-    
-
-    for epochs in range(epoch):
-        correct_train = 0
-        total_train = 0
-
-        for i, (image, labels) in enumerate(train_loader):
-            train = image.view(input_shape)
-            labels = labels
-
-            opt.zero_grad()
-            output = model(train)
-
-            t_loss = criterion(output, labels)
-            t_loss.backward()
-
-            opt.step()
-            predicted = torch.max(output.data, 1)[1]
-            total_train += len(labels)
-            
-            correct_train += (predicted==labels).float().sum()
-
-        acc = 100 * correct_train / float(total_train)
-        train_acc.append(acc)
-        train_loss.append(t_loss.item())
-
-        correct_test = 0
-        total_test = 0
-
-        for i, (image, labels) in enumerate(test_loader):
-            test = image.view(input_shape)
-
-            output = model(test)
-            v_loss = criterion(output, labels.long())
-            predicted = torch.max(output.data, 1)[1]
-            total_test += len(labels)
-            correct_test += (predicted==labels).float().sum()
-
-        val_acc = 100 * correct_test / float(total_test)
-        valid_acc.append(val_acc)
-        valid_loss.append(v_loss.item())
-
-        print('Train Epoch:{}/{} Training_loss:{} Training_acc:{:.6f}% val_loss:{} val_acc:{:.6f}%'.format(epochs, epoch, t_loss.data, acc, v_loss.data, val_acc))
-    return train_loss, train_acc, valid_loss, valid_acc
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+    torch.backends.cudnn.benchmark = True
+else:
+    device = torch.device('cpu')
 
 if __name__ == '__main__':
+    torch.manual_seed(torch.initial_seed())
 
-   
+    imgid, labelid, dict_ = getimg()
+    imgdataset = ImgDataset(transform=None, imgid=imgid, labelid=labelid, dict_=dict_, device=device)
 
-    # in mnist use this method otherwise use dataset
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    x_train = x_train.astype('float32') / 255
-    x_test = x_test.astype('float32') / 255
+    train_size = int(len(imgdataset)*0.8)
+    test_size = len(imgdataset) - train_size
+    train_set, test_set = torch.utils.data.random_split(imgdataset, [train_size, test_size])
+
     
-    train_data, test_data, target_train, target_test = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+    """evens = list(range(0, len(imgdataset), 20))
+    odds = list(range(1, len(imgdataset), 60))
+    train_set = torch.utils.data.Subset(imgdataset, evens)
+    test_set = torch.utils.data.Subset(imgdataset, odds)"""
+    
 
-    train_data = torch.from_numpy(train_data)
-    test_data = torch.from_numpy(test_data).type(torch.FloatTensor)
+    """valid_size = int(len(test_set)*0.5)
+    test_size = len(test_set) - valid_size 
+    test_set, valid_set = torch.utils.data.random_split(test_set, [valid_size, test_size])"""
+    
+    
+    batch_size = 64
+    
+    trainLoader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
+    testLoader = DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
+    # validLoader = DataLoader(valid_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
+    
+    model = net().to(device)
+    # model.load_state_dict(torch.load('./model/model_0.pt'))
+    model.load_state_dict(torch.load('model_0_96.pt'))
+    loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=0.1)
+    loss_fn_test = nn.CrossEntropyLoss(reduction='mean')
 
-    target_train = torch.from_numpy(target_train)
-    target_test = torch.from_numpy(target_test).type(torch.Tensor)
+    opt = torch.optim.AdamW(model.parameters(), lr=0.001)
+    # lr_scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=3, gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=opt, mode='max', factor=0.1, patience=3, threshold=0.01)
+    print("-----Start Training-----")
+    epoch = 99
+    # train
+    for i in range(epoch):
+        print("Epoch:{}".format(i))
+        
+        scaler = amp.GradScaler()
+        train_set.dataset.mode = "train"
+        train_epoch(trainLoader, model, loss_fn, opt, lr_scheduler, scaler)
 
-    TRAIN = TensorDataset(train_data, target_train)
-    TEST = TensorDataset(test_data, target_test)
+        test_set.dataset.mode = "test"
+        WP = test_epoch(testLoader, model, loss_fn_test)
+        WP = round(WP*100, 3) 
 
-    lr = 0.01
-    batch = 100
-    iters = 10000
-    epochs = int(iters/(len(train_data)/batch))
+        # 24: 86.89%
+        # 25: 86.47%
+        # 27: 86.92%
 
-
-    train_loader = DataLoader(TRAIN, batch_size=batch, shuffle=True)
-    test_loader = DataLoader(TEST, batch_size=batch, shuffle=True)
-
-    training_loss, training_accuracy, validation_loss, validation_accuracy = train(train_loader, test_loader, epochs)
-
-    # visualization
-    plt.plot(range(epochs), training_loss, 'b-', label='Training_loss')
-    plt.plot(range(epochs), validation_loss, 'g-', label='validation_loss')
-    plt.title('Training & Validation loss')
-    plt.xlabel('Number of epochs')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.show()
-    plt.plot(range(epochs), training_accuracy, 'b-', label='Training_accuracy')
-    plt.plot(range(epochs), validation_accuracy, 'g-', label='Validation_accuracy')
-    plt.title('Training & Validation accuracy')
-    plt.xlabel('Number of epochs')
-    plt.ylabel('Accuracy')
-    plt.legend()
-    plt.show()
+        modelname = 'model_' + str(i) + '_' + str(WP) + '.pt'
+        torch.save(model.state_dict(), modelname)
+        print('Save model {}'.format(i))
+        print('\n')
 
