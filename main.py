@@ -8,7 +8,7 @@ import torch.nn as nn
 # from torchvision import datasets
 # from PIL import Image
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, Resize, ToTensor, transforms
+# from torchvision.transforms import Compose, Resize, ToTensor, transforms
 from torch.cuda import amp
 from dataset import ImgDataset
 from function import getimg, test_epoch, train_epoch
@@ -51,13 +51,13 @@ if __name__ == '__main__':
     
     model = net().to(device)
     # model.load_state_dict(torch.load('./model/model_0.pt'))
-    model.load_state_dict(torch.load('model_0_96.pt'))
+    # model.load_state_dict(torch.load('model_18_96.356.pt'))
     loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=0.1)
     loss_fn_test = nn.CrossEntropyLoss(reduction='mean')
 
-    opt = torch.optim.AdamW(model.parameters(), lr=0.001)
+    opt = torch.optim.AdamW(model.parameters(), lr=0.1)
     # lr_scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=3, gamma=0.5)
-    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=opt, mode='max', factor=0.1, patience=3, threshold=0.01)
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=opt, mode='max', factor=0.1, patience=3, threshold=0.0001)
     print("-----Start Training-----")
     epoch = 99
     # train
@@ -66,16 +66,15 @@ if __name__ == '__main__':
         
         scaler = amp.GradScaler()
         train_set.dataset.mode = "train"
-        train_epoch(trainLoader, model, loss_fn, opt, lr_scheduler, scaler)
+        # train_epoch(trainLoader, model, loss_fn, opt, lr_scheduler, scaler)
 
         test_set.dataset.mode = "test"
         WP = test_epoch(testLoader, model, loss_fn_test)
         WP = round(WP*100, 3) 
 
-        # 24: 86.89%
-        # 25: 86.47%
-        # 27: 86.92%
 
+
+        # break
         modelname = 'model_' + str(i) + '_' + str(WP) + '.pt'
         torch.save(model.state_dict(), modelname)
         print('Save model {}'.format(i))

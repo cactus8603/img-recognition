@@ -1,5 +1,5 @@
 import os
-from matplotlib.pyplot import axis
+# from matplotlib.pyplot import axis
 import pandas as pd
 import torch
 # import torch.nn as nn
@@ -89,7 +89,7 @@ def get_confusion_matrix(y_true, y_pred):
     return cm
 
 def WP_score(cm):
-    # FP = cm.sum(axis=0) - np.diag(cm)  
+    FP = cm.sum(axis=0) - np.diag(cm)  
     FN = cm.sum(axis=1) - np.diag(cm)
     TP = np.diag(cm)
     # TN = cm.sum() - (FP + FN + TP)
@@ -97,8 +97,9 @@ def WP_score(cm):
     WP = 0
     for idx in range(0,14):
         precision = float(TP[idx] / (TP[idx]+FN[idx]))
-        # recall =  float(TP[idx] / (TP[idx]+FN[idx]))
-        # f1 = 2 * (precision*recall) / (precision+recall)
+        recall =  float(TP[idx] / (TP[idx]+FP[idx]))
+        f1 = 2 * (precision*recall) / (precision+recall)
+        print("Type:{}, f1-score:{}".format(idx+1, f1))
         if precision == 'nan':
             continue
         else:
