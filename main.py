@@ -88,8 +88,11 @@ if __name__ == '__main__':
         scaler = amp.GradScaler()
         train_set.dataset.mode = "train"
         train_epoch(trainLoader, model, loss_fn, opt, lr_scheduler, scaler)
+<<<<<<< HEAD
         # train_set.dataset.mode = "test"
         # wp = test_epoch(trainLoader, model, loss_fn_test)
+=======
+>>>>>>> 2217a67cf86a97798442a7445c5de74015c60953
 
         test_set.dataset.mode = "test"
         WP = test_epoch(testLoader, model, loss_fn_test)
