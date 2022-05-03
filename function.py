@@ -102,7 +102,7 @@ def train_epoch(dataloader, model, loss_fn, opt, lr_scheduler, scaler):
     # size = int(len(dataloader.dataset) / 2)
     
     model.train()
-    accumulation_steps = 4
+    accumulation_steps = 1
 
     # cm = np.zeros((14,14),dtype=float)
     correct = 0

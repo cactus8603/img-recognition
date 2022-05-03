@@ -24,20 +24,19 @@ test_transform = transforms.Compose([
             # transforms.CenterCrop((1536,1536)),
             # transforms.Resize((512,512)),
             transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+            transforms.Normalize([0.439, 0.459, 0.406], [0.185, 0.186, 0.229])
         ])
 dict_ = pd.read_csv('label.txt', delimiter=" ", header=None).to_dict()[0]
 
 model = net().to(device)
 # model.load_state_dict(torch.load('./model/perfect/trans/resnet34/model_1_97.00_96.88.pt'))
-model.load_state_dict(torch.load('./model/perfect/trans/resnet34/model_0_96.89_96.89.pt'))
+model.load_state_dict(torch.load('./tmp/res34/model_55_98.81_98.947.pt'))
 model.eval()
 
 nSamples = [4077, 12657, 1991, 9665, 1957, 7652, 4719, 10523, 8002, 1676, 7950, 5683, 2215, 1503]
 
 
 for idx in range(14):
-    idx = 13
     imgname = []
     label = []
     progress = tqdm(total=nSamples[idx])
@@ -60,17 +59,17 @@ for idx in range(14):
             # print(p)
             # print(filename)
             # print(pred)
-            if (pred != dict_[idx]):
-            #     print(p)
-            #     print(p[0][int(p.argmax(1))])
-            #     print(filename)
-            #     print(pred)
-                if(p[0][int(p.argmax(1))]*0.918 < 0.3):
-                    no.append(round(float(p[0][int(p.argmax(1))]),3))
-                # continue
-            elif (pred == dict_[idx]):
-                if(p[0][int(p.argmax(1))]*0.918 < 0.3):
-                    co.append(round(float(p[0][int(p.argmax(1))]),3))
+            # if (pred != dict_[idx]):
+            # #     print(p)
+            # #     print(p[0][int(p.argmax(1))])
+            # #     print(filename)
+            # #     print(pred)
+            #     if(p[0][int(p.argmax(1))]*0.918 < 0.3):
+            #         no.append(round(float(p[0][int(p.argmax(1))]),3))
+            #     # continue
+            # elif (pred == dict_[idx]):
+            #     if(p[0][int(p.argmax(1))]*0.918 < 0.3):
+            #         co.append(round(float(p[0][int(p.argmax(1))]),3))
 
         imgname.append(filename)
         label.append(pred)
@@ -81,10 +80,10 @@ for idx in range(14):
     result = pd.DataFrame(data=d)
     filename = './' + str(dict_[idx]) + '.csv'
     result.to_csv(filename, index=False, header=False)
-    print(no)
-    print(len(no))
-    print(co)
-    print(len(co))
-    break
+    # print(no)
+    # print(len(no))
+    # print(co)
+    # print(len(co))
+    # break
 
     

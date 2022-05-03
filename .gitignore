@@ -3,5 +3,7 @@
 /__pycache__
 /model
 /old
+/tmp
 /output
-/*.pt
+*.pt
+*.csv

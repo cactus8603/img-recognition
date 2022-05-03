@@ -38,14 +38,15 @@ class ImgDataset(Dataset):
             # transforms.CenterCrop((380,500)),
             # transforms.RandomCrop((224,224)),
 
-            transforms.ColorJitter(brightness=0.35, contrast=0.35, saturation=0.2, hue=0.12),
-            transforms.RandomHorizontalFlip(),
+            # transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2, hue=0.1),
+            # transforms.RandomHorizontalFlip(),
             # transforms.RandomVerticalFlip(),
             # transforms.RandomRotation(degrees=(-40,40), center=(250,100)),
-            transforms.RandomPerspective(p=0.2),
+            # transforms.RandomPerspective(),
             transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
-            transforms.RandomErasing(p=0.6, scale=(0.02, 0.5), ratio=(0.3, 0.3)),
+            # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+            transforms.Normalize([0.439, 0.459, 0.406], [0.185, 0.186, 0.229]),
+            # transforms.RandomErasing(p=0.6, scale=(0.02, 0.5), ratio=(0.3, 0.3)),
 
             # transforms.ToPILImage(),
 
@@ -61,7 +62,8 @@ class ImgDataset(Dataset):
             # transforms.Resize((224,224)),
 
             transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+            # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+            transforms.Normalize([0.439, 0.459, 0.406], [0.185, 0.186, 0.229]),
         ])
         
         

@@ -47,14 +47,15 @@ if __name__ == '__main__':
     test_set, valid_set = torch.utils.data.random_split(test_set, [valid_size, test_size])"""
     
     
-    batch_size = 32
+    batch_size = 64
     
     trainLoader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
     testLoader = DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
     # validLoader = DataLoader(valid_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
     
     model = net().to(device)
- 
+    # model.load_state_dict(torch.load('./tmp/res34/model_55_98.81_98.947.pt'))
+
     # 1536->512
     # 1:97.15
     # model.load_state_dict(torch.load('./model/perfect/trans/resnet34/model_1_97.00_96.88.pt'))
@@ -72,36 +73,46 @@ if __name__ == '__main__':
     normedWeights = [1 - (x / sum(nSamples)) for x in nSamples]
     normedWeights = torch.FloatTensor(normedWeights).to(device)
 
-    loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=0.1)
+    loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=0.12)
     loss_fn_test = nn.CrossEntropyLoss(reduction='mean')
 
     opt = torch.optim.AdamW(model.parameters(), lr=1e-1)
     # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(opt, T_0=5, T_mult=2)
-    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=opt, mode='min', factor=0.995, patience=5, threshold=0.001, eps=0)
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=opt, mode='min', factor=0.995, patience=8, threshold=0.00001, eps=1e-8)
     print("-----Start Training-----")
 
     epoch = 80
+    smooth = 0.12
+    WP = 0
     # train
     for i in range(epoch):
         print("Epoch:{}".format(i))
         
         scaler = amp.GradScaler()
         train_set.dataset.mode = "train"
+        if (WP > 0.8): 
+            smooth *= 0.8
+            if smooth < 0.01 : smooth = 0.0;
+            loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=smooth)
+            
+
         train_epoch(trainLoader, model, loss_fn, opt, lr_scheduler, scaler)
-<<<<<<< HEAD
         # train_set.dataset.mode = "test"
         # wp = test_epoch(trainLoader, model, loss_fn_test)
-=======
->>>>>>> 2217a67cf86a97798442a7445c5de74015c60953
 
         test_set.dataset.mode = "test"
         WP = test_epoch(testLoader, model, loss_fn_test)
 
         # print('score:{}'.format(wp*0.8+WP*0.2))
         # break
-        WP = round(WP*100, 3) 
+        # WP = round(WP*100, 3) 
+        if (WP > 0.85): 
+            smooth *= 0.8
+            loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=smooth)
+
         
-        modelname = 'model_' + str(i) + '_' + str(WP) + '.pt'
+
+        modelname = './tmp/se/model_' + str(i) + '_' + str(WP) + '.pt'
         torch.save(model.state_dict(), modelname)
         print('Save model {}'.format(i))
         print('\n')
