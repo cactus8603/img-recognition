@@ -1,3 +1,4 @@
+import csv
 import os
 # from matplotlib.pyplot import axis
 import pandas as pd
@@ -97,12 +98,14 @@ def WP_score(cm):
     
     return WP
 
-def train_epoch(dataloader, model, loss_fn, opt, lr_scheduler, scaler):
+def train_epoch(dataloader, model, loss_fn, opt, lr_scheduler, scaler, epoch):
     print("Train state")
     # size = int(len(dataloader.dataset) / 2)
     
+    train_detail = pd.read_csv('train.csv')
+
     model.train()
-    accumulation_steps = 1
+    accumulation_steps = 6
 
     # cm = np.zeros((14,14),dtype=float)
     correct = 0
@@ -150,17 +153,16 @@ def train_epoch(dataloader, model, loss_fn, opt, lr_scheduler, scaler):
             # print('lr:', lr_scheduler.optimizer.param_groups[0]['lr'])
             # print('loss:', loss.item())
         
-
-        # loss.backward()
-        # opt.step()
-    # lr_scheduler.step()
-    size = len(dataloader.dataset)
+    acc = correct/len(dataloader.dataset)
+    train_detail.loc[len(train_detail.index)] = [epoch, round(lr_scheduler.optimizer.param_groups[0]['lr'],8), avg_loss, acc]
+    train_detail.to_csv('train.csv', index=False)
+    # print(train_detail)
     # WP = WP_score(cm) / size
     # print(cm)
     
-    print("Training loss:{:.5f} acc:{:.5f}% lr:{:.5f}".format(avg_loss, correct/size, lr_scheduler.optimizer.param_groups[0]['lr']))
+    print("Training loss:{:.5f} acc:{:.5f}% lr:{:.5f}".format(avg_loss, acc, lr_scheduler.optimizer.param_groups[0]['lr']))
 
-def test_epoch(dataloader, model, loss_fn):
+def test_epoch(dataloader, model, loss_fn, epoch):
     print("Test state")
 
     size = len(dataloader.dataset)
@@ -168,6 +170,8 @@ def test_epoch(dataloader, model, loss_fn):
     correct = 0
     cm = np.zeros((14,14),dtype=float)
     model.eval()
+
+    test_detail = pd.read_csv('test.csv')
 
     with torch.no_grad():
         for im, label in tqdm(dataloader):
@@ -201,6 +205,8 @@ def test_epoch(dataloader, model, loss_fn):
     # print(cm)
     # for i in range(14):
         # print(i, cm[i][i])
+    test_detail.loc[len(test_detail.index)] = [epoch, test_loss, WP]
+    test_detail.to_csv('test.csv', index=False)
     print('Test Error: Acc:{:.5f}%, WP:{:.5f}, Avg loss:{:.5f}'.format(100*correct, WP, test_loss))
     return WP
 

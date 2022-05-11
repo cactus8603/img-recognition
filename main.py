@@ -1,10 +1,11 @@
-from tkinter import Image
 import torch
 import torch.nn as nn
 # import torch.nn.functional as F
 # import matplotlib.pyplot as plt
 # import numpy as np
 # import random
+import os
+import pandas as pd 
 import warnings
 
 # from torchvision import datasets
@@ -47,14 +48,14 @@ if __name__ == '__main__':
     test_set, valid_set = torch.utils.data.random_split(test_set, [valid_size, test_size])"""
     
     
-    batch_size = 64
+    batch_size = 32
     
     trainLoader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
     testLoader = DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
     # validLoader = DataLoader(valid_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
     
     model = net().to(device)
-    # model.load_state_dict(torch.load('./tmp/res34/model_55_98.81_98.947.pt'))
+    # model.load_state_dict(torch.load('./tmp/res34/model_21_95.92.pt'))
 
     # 1536->512
     # 1:97.15
@@ -67,13 +68,12 @@ if __name__ == '__main__':
     # model.load_state_dict(torch.load('./model/perfect/trans/resnet34/model_1_96.94_96.82.pt'))
     
 
-
     # banana bareland carrot corn dragonfruit garlic guava peanut pineapple pumpkin rice soybean sugarcane tomato
     nSamples = [4077, 12657, 1991, 9665, 1957, 7652, 4719, 10523, 8002, 1676, 7950, 5683, 2215, 1503]
     normedWeights = [1 - (x / sum(nSamples)) for x in nSamples]
     normedWeights = torch.FloatTensor(normedWeights).to(device)
 
-    loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=0.12)
+    loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=0.1)
     loss_fn_test = nn.CrossEntropyLoss(reduction='mean')
 
     opt = torch.optim.AdamW(model.parameters(), lr=1e-1)
@@ -81,36 +81,43 @@ if __name__ == '__main__':
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=opt, mode='min', factor=0.995, patience=8, threshold=0.00001, eps=1e-8)
     print("-----Start Training-----")
 
+    
+    if (not os.path.isfile('train.csv')):
+        train_detail = pd.DataFrame(columns=['epoch', 'learning_rate', 'train_loss', 'train_accuracy'])
+        train_detail.to_csv("train.csv", index=False)
+
+    if (not os.path.isfile('test.csv')):
+        test_detail = pd.DataFrame(columns=['epoch', 'test_loss', 'test_accuracy'])
+        test_detail.to_csv("./test.csv", index=False)
+    
+
     epoch = 80
-    smooth = 0.12
-    WP = 0
+    smooth = 0.1
+    WP = 0.0
     # train
     for i in range(epoch):
         print("Epoch:{}".format(i))
         
         scaler = amp.GradScaler()
         train_set.dataset.mode = "train"
-        if (WP > 0.8): 
-            smooth *= 0.8
-            if smooth < 0.01 : smooth = 0.0;
+        if (WP > 95): 
+            smooth *= 0.5
+            print("Adjust label smoothing:{:.3f}\n".format(smooth))
+            if smooth < 0.01 : smooth = 0.0
             loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=smooth)
             
 
-        train_epoch(trainLoader, model, loss_fn, opt, lr_scheduler, scaler)
+        train_epoch(trainLoader, model, loss_fn, opt, lr_scheduler, scaler, i+1)
         # train_set.dataset.mode = "test"
         # wp = test_epoch(trainLoader, model, loss_fn_test)
 
         test_set.dataset.mode = "test"
-        WP = test_epoch(testLoader, model, loss_fn_test)
+        WP = test_epoch(testLoader, model, loss_fn_test, i+1)
 
         # print('score:{}'.format(wp*0.8+WP*0.2))
         # break
-        # WP = round(WP*100, 3) 
-        if (WP > 0.85): 
-            smooth *= 0.8
-            loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=smooth)
+        WP = round(WP*100, 3) 
 
-        
 
         modelname = './tmp/se/model_' + str(i) + '_' + str(WP) + '.pt'
         torch.save(model.state_dict(), modelname)
