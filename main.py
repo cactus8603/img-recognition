@@ -48,14 +48,14 @@ if __name__ == '__main__':
     test_set, valid_set = torch.utils.data.random_split(test_set, [valid_size, test_size])"""
     
     
-    batch_size = 32
+    batch_size = 48
     
     trainLoader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
     testLoader = DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
     # validLoader = DataLoader(valid_set, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
     
     model = net().to(device)
-    # model.load_state_dict(torch.load('./tmp/res34/model_21_95.92.pt'))
+    # model.load_state_dict(torch.load('./tmp/eff/model_13_95.665.pt'))
 
     # 1536->512
     # 1:97.15
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=0.1)
     loss_fn_test = nn.CrossEntropyLoss(reduction='mean')
 
-    opt = torch.optim.AdamW(model.parameters(), lr=1e-1)
+    opt = torch.optim.AdamW(model.parameters(), lr=0.01)
     # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(opt, T_0=5, T_mult=2)
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=opt, mode='min', factor=0.995, patience=8, threshold=0.00001, eps=1e-8)
     print("-----Start Training-----")
@@ -106,7 +106,6 @@ if __name__ == '__main__':
             if smooth < 0.01 : smooth = 0.0
             loss_fn = nn.CrossEntropyLoss(reduction='mean', label_smoothing=smooth)
             
-
         train_epoch(trainLoader, model, loss_fn, opt, lr_scheduler, scaler, i+1)
         # train_set.dataset.mode = "test"
         # wp = test_epoch(trainLoader, model, loss_fn_test)
@@ -119,7 +118,7 @@ if __name__ == '__main__':
         WP = round(WP*100, 3) 
 
 
-        modelname = './tmp/se/model_' + str(i) + '_' + str(WP) + '.pt'
+        modelname = './tmp/eff/model_' + str(i) + '_' + str(WP) + '.pt'
         torch.save(model.state_dict(), modelname)
         print('Save model {}'.format(i))
         print('\n')

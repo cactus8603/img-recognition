@@ -13,11 +13,14 @@ class net(nn.Module):
         # self.model = timm.create_model('seresnext26d_32x4d', pretrained=False, num_classes=14)
         # self.model = timm.create_model('res2next50', pretrained=False, num_classes=14)
         # self.model = timm.create_model('efficientnet_b0', pretrained=False, num_classes=14)
+        self.model = timm.create_model('efficientnet_b1_pruned', pretrained=True, num_classes=14)
+
         # self.model = torch.hub.load('pytorch/vision:v0.10.0', 'resnext50_32x4d', pretrained=False) # resnext
-        self.model = timm.create_model('regnety_002', pretrained=False, num_classes=14)
+        # self.model = timm.create_model('regnety_002', pretrained=False, num_classes=14)
         # self.model = timm.create_model('skresnext50_32x4d', pretrained=False, num_classes=14)
-        # self.model.fc = nn.Linear(128,14)
-        self.model.fc = nn.Linear(2048,14)
+        
+
+        # self.model.fc = nn.Linear(2048,14)
 
         # self.model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet34', pretrained=False)
         # self.model.fc = nn.Linear(512,14)

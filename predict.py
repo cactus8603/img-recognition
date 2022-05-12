@@ -30,13 +30,14 @@ dict_ = pd.read_csv('label.txt', delimiter=" ", header=None).to_dict()[0]
 
 model = net().to(device)
 # model.load_state_dict(torch.load('./model/perfect/trans/resnet34/model_1_97.00_96.88.pt'))
-model.load_state_dict(torch.load('./tmp/res34/model_55_98.81_98.947.pt'))
+model.load_state_dict(torch.load('./model/resnet34/res34/model_55_98.81_98.947.pt'))
 model.eval()
 
 nSamples = [4077, 12657, 1991, 9665, 1957, 7652, 4719, 10523, 8002, 1676, 7950, 5683, 2215, 1503]
 
 
 for idx in range(14):
+    idx = 0
     imgname = []
     label = []
     progress = tqdm(total=nSamples[idx])
@@ -84,6 +85,6 @@ for idx in range(14):
     # print(len(no))
     # print(co)
     # print(len(co))
-    # break
+    break
 
     

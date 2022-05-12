@@ -1,3 +1,3 @@
-batchsize=32
+batchsize=48
 accumulation_steps=6
 factor=0.995, patience=8
